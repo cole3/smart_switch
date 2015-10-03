@@ -1,0 +1,318 @@
+C51 COMPILER V7.08   IR                                                                    10/03/2015 23:33:20 PAGE 1   
+
+
+C51 COMPILER V7.08, COMPILATION OF MODULE IR
+OBJECT MODULE PLACED IN .\ir.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE ..\source\ir.c BROWSE INCDIR(../include/) DEBUG OBJECTEXTEND PRINT(.\ir.lst
+                    -) OBJECT(.\ir.obj)
+
+line level    source
+
+   1          /*
+   2           * ir
+   3           * using timer1 counter to invode interrupt because STC15F104E's ex int error.
+   4           * timer0 is used to calculate high/low level's time.
+   5          */
+   6          
+   7          #include "ir.h"
+   8          #include "timer.h"
+   9          
+  10          
+  11          static bit ir_rcv_int = 0;
+  12          
+  13          
+  14          void ir_rcv_isr(void)
+  15          {
+  16   1          Timer1_InterruptDisable();
+  17   1          ir_rcv_int = 1;
+  18   1      }
+  19          
+  20          void ir_rcv_t0_timer_cfg(void)
+  21          {
+  22   1          TIM_InitTypeDef tim_type;
+  23   1      
+  24   1          tim_type.TIM_Mode = TIM_16BitAutoReload;
+  25   1          tim_type.TIM_Polity = 1;
+  26   1          tim_type.TIM_Interrupt = DISABLE;
+  27   1          tim_type.TIM_ClkSource = TIM_CLOCK_12T;
+  28   1          tim_type.TIM_ClkOut = DISABLE;
+  29   1          tim_type.TIM_Value = 0;
+  30   1          tim_type.TIM_Run = DISABLE;
+  31   1          tim_type.TIM_Isr = 0;
+  32   1          Timer_Inilize(Timer0, &tim_type);
+  33   1      }
+  34          
+  35          void ir_rcv_t1_timer_cfg(bit enable)
+  36          {
+  37   1          TIM_InitTypeDef tim_type;
+  38   1      
+  39   1          tim_type.TIM_Mode = TIM_16BitAutoReload;
+  40   1          tim_type.TIM_Polity = PolityLow;
+  41   1          tim_type.TIM_Interrupt = enable;
+  42   1          tim_type.TIM_ClkSource = TIM_CLOCK_Ext;
+  43   1          tim_type.TIM_ClkOut = DISABLE;
+  44   1          tim_type.TIM_Value = 0xFFFF;
+  45   1          tim_type.TIM_Run = enable;
+  46   1          tim_type.TIM_Isr = ir_rcv_isr;
+  47   1          Timer_Inilize(Timer1, &tim_type);
+  48   1      }
+  49          
+  50          static unsigned int Ir_Get_Low()
+  51          {
+  52   1          unsigned int t = 0;
+  53   1      
+  54   1          TL0 = 0;
+C51 COMPILER V7.08   IR                                                                    10/03/2015 23:33:20 PAGE 2   
+
+  55   1          TH0 = 0;
+  56   1          TR0 = 1;
+  57   1          while (!IR_REV && !(TH0 & 0x80));
+  58   1      
+  59   1          TR0 = 0;
+  60   1          t = TH0;
+  61   1          t <<= 8;
+  62   1          t |= TL0;
+  63   1      
+  64   1          return t;
+  65   1      }
+  66          
+  67          static unsigned int Ir_Get_High()
+  68          {
+  69   1          unsigned int t = 0;
+  70   1      
+  71   1          TL0 = 0;
+  72   1          TH0 = 0;
+  73   1          TR0 = 1;
+  74   1          while (IR_REV && !(TH0 & 0x80));
+  75   1      
+  76   1          TR0 = 0;
+  77   1          t = TH0;
+  78   1          t <<= 8;
+  79   1          t |= TL0;
+  80   1      
+  81   1          return t;
+  82   1      }
+  83          
+  84          static bit nec_decode(unsigned char *key)
+  85          {
+  86   1          unsigned int temp;
+  87   1          char i,j;
+  88   1      
+  89   1          temp = Ir_Get_High();
+  90   1          if ((temp < 3686) || (temp > 4608)) { //引导脉冲高电平4000~5000us
+  91   2              return 0;
+  92   2          }
+  93   1      
+  94   1          for (i=0; i<4; i++) { //4个字节
+  95   2              for (j=0; j<8; j++) { //每个字节8位
+  96   3                  temp = Ir_Get_Low();
+  97   3                  if ((temp < 184) || (temp > 737)) //200~800us
+  98   3                      return 0;
+  99   3      
+ 100   3                  temp = Ir_Get_High();
+ 101   3                  if ((temp < 184) || (temp > 1843)) //200~2000us
+ 102   3                      return 0;
+ 103   3      
+ 104   3                  key[i] >>= 1;
+ 105   3                  if (temp > 1032) //1120us
+ 106   3                      key[i] |= 0x80;
+ 107   3              }
+ 108   2          }
+ 109   1      
+ 110   1          return 1;
+ 111   1      }
+ 112          
+ 113          #if 0
+              static bit rc5_decode(unsigned char *key)
+              {
+                  unsigned int temp, c = 0;
+C51 COMPILER V7.08   IR                                                                    10/03/2015 23:33:20 PAGE 3   
+
+                  bit state = 1;
+                  char i = 0, j;
+              
+              #if 0
+                  temp = Ir_Get_High();
+                  test[1] = temp;
+                  if ((temp < 600) || (temp > 900)) { //引导脉冲高电平4000~5000us
+                      goto err;
+                  }
+              #endif
+                  while (1) { //13 bit
+                      temp = Ir_Get_High();
+                      if ((temp < 300) || (temp > 900)) //200~800us
+                          goto err;
+              
+                      if (temp > 600) {
+                          state = !state;
+                          i++;
+                      }
+                      c |= state;
+                      c <<= 1;
+                      i++;
+              
+                      temp = Ir_Get_Low();
+                      if ((temp < 300) || (temp > 900)) //200~800us
+                          goto err;
+              
+                      if (temp > 600) {
+                          state = !state;
+                          i++;
+                      }
+                      c |= state;
+                      c <<= 1;
+                      i++;
+                  }
+              
+              err:
+                  return 1;
+              }
+              #endif
+ 157          
+ 158          bit ir_rcv(unsigned char *key)
+ 159          {
+ 160   1          unsigned int temp;
+ 161   1          bit ret = 0;
+ 162   1      
+ 163   1          if (!ir_rcv_int) {
+ 164   2              return 0;
+ 165   2          }
+ 166   1      
+ 167   1          ir_rcv_t0_timer_cfg();
+ 168   1      
+ 169   1          temp = Ir_Get_Low();
+ 170   1          //test[0] = temp;
+ 171   1      #if 0
+                  if ((temp < 7833) || (temp > 8755))  //引导脉冲低电平8500~9500us
+                      return 0;
+              #else
+ 175   1          if (temp > 8755)
+ 176   1              return 0;
+ 177   1      #endif
+ 178   1      
+C51 COMPILER V7.08   IR                                                                    10/03/2015 23:33:20 PAGE 4   
+
+ 179   1      #if 1
+ 180   1          ret = nec_decode(key);
+ 181   1      #else
+                  ret = rc5_decode(key);
+              #endif
+ 184   1      
+ 185   1          ir_rcv_int = 0;
+ 186   1          Timer1_InterruptEnable();
+ 187   1      
+ 188   1          return ret;
+ 189   1      }
+ 190          
+ 191          void ir_rcv_init(void)
+ 192          {
+ 193   1          ir_rcv_t1_timer_cfg(ENABLE);
+ 194   1          ir_rcv_int = 0;
+ 195   1      }
+ 196          
+ 197          void ir_rcv_deinit(void)
+ 198          {
+ 199   1          ir_rcv_t1_timer_cfg(DISABLE);
+ 200   1          ir_rcv_int = 0;
+ 201   1      }
+ 202          
+ 203          
+ 204          #if 0
+              static bit ir_out;
+              static unsigned char ir_cnt;
+              
+              void ir_send_isr(void)
+              {
+                  if (ir_out) {
+                      IR_SEND = !IR_SEND;
+                  }
+              
+                  if (ir_cnt) {
+                      ir_cnt--;
+                  }
+              }
+              
+              void ir_send_t0_timer_cfg(bit enable)
+              {
+                  TIM_InitTypeDef tim_type;
+              
+                  tim_type.TIM_Mode = TIM_16BitAutoReload;
+                  tim_type.TIM_Polity = 1;
+                  tim_type.TIM_Interrupt = enable;
+                  tim_type.TIM_ClkSource = TIM_CLOCK_12T;
+                  tim_type.TIM_ClkOut = DISABLE;
+                  tim_type.TIM_Value = 65536 - MAIN_Fosc / (38000 * 2);
+                  tim_type.TIM_Run = enable;
+                  tim_type.TIM_Isr = ir_send_isr;
+                  Timer_Inilize(Timer0, &tim_type);
+              }
+              
+              bit ir_send(unsigned char *key)
+              {
+                  // TODO:
+                  key = key;
+                  return 0;
+              }
+              
+C51 COMPILER V7.08   IR                                                                    10/03/2015 23:33:20 PAGE 5   
+
+              void ir_send_init(void)
+              {
+                  IR_SEND = 1;
+                  ir_out = 0;
+                  ir_cnt = 0;
+                  ir_send_t0_timer_cfg(ENABLE);
+              }
+              
+              void ir_send_deinit(void)
+              {
+                  ir_send_t0_timer_cfg(DISABLE);
+                  IR_SEND = 1;
+                  ir_out = 0;
+                  ir_cnt = 0;
+              }
+              
+              
+              bit check_ir_loop(void)
+              {
+                  unsigned char n = 2;
+              
+                  ir_send_init();
+              
+                  do {
+                      if (ir_rcv_int) {
+                          break;
+                      }
+                      ir_cnt = 10;
+                      ir_out = 1;
+                      while (ir_cnt);
+                      ir_out = 0;
+              
+                      if (!ir_rcv_int) {
+                          break;
+                      }
+                      ir_rcv_int = 0;
+                      Timer1_InterruptEnable();
+              
+                      delay_ms(1);
+                  } while (--n);
+              
+                  ir_send_deinit();
+              
+                  return (n == 0);
+              }
+              #endif
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    390    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      31
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1       2
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

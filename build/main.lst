@@ -1,0 +1,105 @@
+C51 COMPILER V7.08   MAIN                                                                  10/03/2015 23:33:08 PAGE 1   
+
+
+C51 COMPILER V7.08, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\main.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE ..\source\main.c BROWSE INCDIR(../include/) DEBUG OBJECTEXTEND PRINT(.\main
+                    -.lst) OBJECT(.\main.obj)
+
+line level    source
+
+   1          #include "config.h"
+   2          #include "GPIO.h"
+   3          #include "delay.h"
+   4          #include "soft_uart.h"
+   5          #include "ir.h"
+   6          
+   7          
+   8          #define TURN_ON(x)        do {x = 0;} while(0)
+   9          #define TURN_OFF(x)       do {x = 1;} while(0)
+  10          #define REVERSE(x)        do {x ^= 1;} while(0)
+  11          
+  12          
+  13          void gpio_init(void)
+  14          {
+  15   1          GPIO_InitTypeDef t_gpio_type;
+  16   1      
+  17   1          t_gpio_type.Mode = GPIO_HighZ;
+  18   1          t_gpio_type.Pin = GPIO_Pin_0;       // UART RXD
+  19   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
+  20   1      
+  21   1          t_gpio_type.Mode = GPIO_PullUp;
+  22   1          t_gpio_type.Pin = GPIO_Pin_1;       // UART TXD
+  23   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
+  24   1      
+  25   1          t_gpio_type.Mode = GPIO_PullUp;
+  26   1          t_gpio_type.Pin = GPIO_Pin_2;       // Relay
+  27   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
+  28   1          TURN_OFF(RELAY);
+  29   1      
+  30   1          t_gpio_type.Mode = GPIO_PullUp;
+  31   1          t_gpio_type.Pin = GPIO_Pin_3;       // LED
+  32   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
+  33   1          TURN_OFF(LED);
+  34   1      
+  35   1          t_gpio_type.Mode = GPIO_PullUp;
+  36   1          t_gpio_type.Pin = GPIO_Pin_4;       // Beep
+  37   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
+  38   1          TURN_OFF(BEEP);
+  39   1      
+  40   1          t_gpio_type.Mode = GPIO_HighZ;
+  41   1          t_gpio_type.Pin = GPIO_Pin_5;       // IR rev
+  42   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
+  43   1      }
+  44          
+  45          unsigned char Ir_Buf[4];
+  46          //char c=0;
+  47          //unsigned int i=0;
+  48          //unsigned int ir_loop_cnt = 0;
+  49          
+  50          
+  51          main()
+  52          {
+  53   1          EA = 1;
+  54   1          gpio_init();
+C51 COMPILER V7.08   MAIN                                                                  10/03/2015 23:33:08 PAGE 2   
+
+  55   1          ir_rcv_init();
+  56   1      
+  57   1          while (1) {
+  58   2              //uart_send(0xA3);
+  59   2              //BEEP = !BEEP;
+  60   2              //for (i=0; i<200; i++);
+  61   2              if (ir_rcv(Ir_Buf)) {
+  62   3                  REVERSE(RELAY);
+  63   3      
+  64   3                  TURN_ON(LED);
+  65   3      
+  66   3                  uart_init();
+  67   3      
+  68   3                  uart_send(Ir_Buf[0]);
+  69   3                  uart_send(Ir_Buf[1]);
+  70   3                  uart_send(Ir_Buf[2]);
+  71   3                  uart_send(Ir_Buf[3]);
+  72   3                  uart_send(0xFF);
+  73   3      
+  74   3                  uart_deinit();
+  75   3      
+  76   3                  TURN_OFF(LED);
+  77   3              }
+  78   2          }
+  79   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    165    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      4       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

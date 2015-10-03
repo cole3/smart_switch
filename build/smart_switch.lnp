@@ -1,0 +1,8 @@
+".\delay.obj",
+".\Exti.obj",
+".\GPIO.obj",
+".\ir.obj",
+".\main.obj",
+".\Soft_uart.obj",
+".\timer.obj" 
+TO "smart_switch" 

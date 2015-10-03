@@ -1,0 +1,165 @@
+C51 COMPILER V7.08   SOFT_UART                                                             10/03/2015 23:33:08 PAGE 1   
+
+
+C51 COMPILER V7.08, COMPILATION OF MODULE SOFT_UART
+OBJECT MODULE PLACED IN .\Soft_uart.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE ..\source\Soft_uart.c BROWSE INCDIR(../include/) DEBUG OBJECTEXTEND PRINT(.
+                    -\Soft_uart.lst) OBJECT(.\Soft_uart.obj)
+
+line level    source
+
+   1          
+   2          /*************  功能说明        **************
+   3          
+   4          本文件为模拟串口发送程序, 一般为测试监控用.
+   5          
+   6          串口参数:9600,8,n,1.
+   7          
+   8          可以根据主时钟自动适应.
+   9          
+  10          ******************************************/
+  11          
+  12          #include        "soft_uart.h"
+  13          #include        "timer.h"
+  14          
+  15          /***************************************************************************/
+  16          
+  17          
+  18          #define BaudRate                9600            //模拟串口波特率
+  19          #define Timer0_Reload   (65536 - MAIN_Fosc / BaudRate / 3)
+  20          #define D_RxBitLenth    9               //9: 8 + 1 stop
+  21          #define D_TxBitLenth    9               //9: 1 stop bit
+  22          
+  23          sbit RXB = P3^0;                //define UART TX/RX port
+  24          sbit TXB = P3^1;
+  25          
+  26          static unsigned char TBUF,RBUF;
+  27          static unsigned char TCNT,RCNT; //发送和接收检测 计数器(3倍速率检测)
+  28          static unsigned char TBIT,RBIT; //发送和接收的数据计数器
+  29          static unsigned char rcv_cnt, get_cnt;
+  30          static unsigned char buf[8];
+  31          
+  32          static bit TING,RING;   //正在发送或接收一个字节
+  33          static bit init;
+  34          
+  35          #define RxBitLenth      9       //8个数据位+1个停止位
+  36          #define TxBitLenth      9       //8个数据位+1个停止位
+  37          
+  38          
+  39          bit uart_rev(unsigned char *dat)
+  40          {
+  41   1          if (!init) {
+  42   2              return 0;
+  43   2          }
+  44   1          if (get_cnt != rcv_cnt) {
+  45   2              *dat = buf[get_cnt++ & 0x0f];
+  46   2              return 1;
+  47   2          }
+  48   1          return 0;
+  49   1      }
+  50          
+  51          bit uart_send(unsigned char dat)
+  52          {
+  53   1          if (!init) {
+  54   2              return 0;
+C51 COMPILER V7.08   SOFT_UART                                                             10/03/2015 23:33:08 PAGE 2   
+
+  55   2          }
+  56   1          while (TING);
+  57   1          TBUF = dat;
+  58   1          TING = 1;
+  59   1          return 1;
+  60   1      }
+  61          
+  62          void print(unsigned char code *str)
+  63          {
+  64   1          while (*str) {
+  65   2              uart_send(*str++);
+  66   2          }
+  67   1      }
+  68          
+  69          void uart_isr(void)
+  70          {
+  71   1          if (RING) {
+  72   2              if (--RCNT == 0) {                        //接收数据以定时器的1/3来接收
+  73   3                  RCNT = 3;                   //重置接收计数器  接收数据以定时器的1/3来接收   reset send baudrate 
+             -counter
+  74   3                  if (--RBIT == 0) {            //接收完一帧数据
+  75   4                      RING = 0;               //停止接收                      stop receive
+  76   4                      buf[rcv_cnt++ & 0x0f] = RBUF;
+  77   4                  } else {
+  78   4                      RBUF >>= 1;                       //把接收的单b数据 暂存到 RDAT(接收缓冲)
+  79   4                      if (RXB) RBUF |= 0x80;  //shift RX data to RX buffer
+  80   4                  }
+  81   3              }
+  82   2          } else if (!RXB) {  //判断是不是开始位 RXB=0;
+  83   2              RING = 1;       //如果是则设置开始接收标志位    set start receive flag
+  84   2              RCNT = 4;       //初始化接收波特率计数器        initial receive baudrate counter
+  85   2              RBIT = RxBitLenth;       //初始化接收的数据位数(8个数据位+1个停止位)    initial receive bit number
+             - (8 data bits + 1 stop bit)
+  86   2          }
+  87   1      
+  88   1          if (TING) {         //发送开始标志位   judge whether sending
+  89   2              if (--TCNT == 0) {              //发送数据以定时器的1/3来发送
+  90   3                  TCNT = 3;                           //重置发送计数器   reset send baudrate counter
+  91   3                  if (TBIT == 0) {            //发送计数器为0 表明单字节发送还没开始
+  92   4                      TXB = 0;                        //发送开始位                                            send start bit
+  93   4                      TBIT = TxBitLenth;      //发送数据位数 (8数据位+1停止位)        initial send bit number (8 data bits +
+             - 1 stop bit)
+  94   4                  } else {                            //发送计数器为非0 正在发送数据
+  95   4                      if (--TBIT == 0) {      //发送计数器减为0 表明单字节发送结束
+  96   5                          TXB = 1;            //送停止位数据
+  97   5                          TING = 0;           //发送停止位                            stop send
+  98   5                      } else {
+  99   5                          TBUF >>= 1;         //把最低位送到 CY(益处标志位) shift data to CY
+ 100   5                          TXB = CY;           //发送单b数据                           write CY to TX port
+ 101   5                      }
+ 102   4                  }
+ 103   3              }
+ 104   2          }
+ 105   1      }
+ 106          
+ 107          void uart_init(void)
+ 108          {
+ 109   1          TIM_InitTypeDef tim_type;
+ 110   1      
+ 111   1          tim_type.TIM_Mode = TIM_16BitAutoReload;
+ 112   1          tim_type.TIM_Polity = 1;
+ 113   1          tim_type.TIM_Interrupt = ENABLE;
+C51 COMPILER V7.08   SOFT_UART                                                             10/03/2015 23:33:08 PAGE 3   
+
+ 114   1          tim_type.TIM_ClkSource = TIM_CLOCK_1T;
+ 115   1          tim_type.TIM_ClkOut = DISABLE;
+ 116   1          tim_type.TIM_Value = Timer0_Reload;
+ 117   1          tim_type.TIM_Run = ENABLE;
+ 118   1          tim_type.TIM_Isr = uart_isr;
+ 119   1          Timer_Inilize(Timer0, &tim_type);
+ 120   1      
+ 121   1          TING = 0;
+ 122   1          RING = 0;
+ 123   1          TCNT = 3;
+ 124   1          RCNT = 0;
+ 125   1          init = 1;
+ 126   1      }
+ 127          
+ 128          void uart_deinit(void)
+ 129          {
+ 130   1          init = 0;
+ 131   1          while (TING);
+ 132   1          Timer0_Stop();
+ 133   1          Timer0_InterruptDisable();
+ 134   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    230    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     16      11
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
