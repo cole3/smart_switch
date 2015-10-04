@@ -1,4 +1,4 @@
-C51 COMPILER V7.08   IR                                                                    10/03/2015 23:33:20 PAGE 1   
+C51 COMPILER V7.08   IR                                                                    10/04/2015 13:52:39 PAGE 1   
 
 
 C51 COMPILER V7.08, COMPILATION OF MODULE IR
@@ -62,7 +62,7 @@ line level    source
   52   1          unsigned int t = 0;
   53   1      
   54   1          TL0 = 0;
-C51 COMPILER V7.08   IR                                                                    10/03/2015 23:33:20 PAGE 2   
+C51 COMPILER V7.08   IR                                                                    10/04/2015 13:52:39 PAGE 2   
 
   55   1          TH0 = 0;
   56   1          TR0 = 1;
@@ -126,7 +126,7 @@ line level    source
               static bit rc5_decode(unsigned char *key)
               {
                   unsigned int temp, c = 0;
-C51 COMPILER V7.08   IR                                                                    10/03/2015 23:33:20 PAGE 3   
+C51 COMPILER V7.08   IR                                                                    10/04/2015 13:52:39 PAGE 3   
 
                   bit state = 1;
                   char i = 0, j;
@@ -180,44 +180,37 @@ line level    source
  166   1      
  167   1          ir_rcv_t0_timer_cfg();
  168   1      
- 169   1          temp = Ir_Get_Low();
- 170   1          //test[0] = temp;
- 171   1      #if 0
-                  if ((temp < 7833) || (temp > 8755))  //引导脉冲低电平8500~9500us
-                      return 0;
-              #else
- 175   1          if (temp > 8755)
- 176   1              return 0;
- 177   1      #endif
- 178   1      
-C51 COMPILER V7.08   IR                                                                    10/03/2015 23:33:20 PAGE 4   
-
- 179   1      #if 1
- 180   1          ret = nec_decode(key);
- 181   1      #else
+ 169   1          Ir_Get_Low();
+ 170   1      
+ 171   1      #if 1
+ 172   1          ret = nec_decode(key);
+ 173   1      #else
                   ret = rc5_decode(key);
               #endif
- 184   1      
- 185   1          ir_rcv_int = 0;
- 186   1          Timer1_InterruptEnable();
- 187   1      
- 188   1          return ret;
- 189   1      }
- 190          
- 191          void ir_rcv_init(void)
- 192          {
- 193   1          ir_rcv_t1_timer_cfg(ENABLE);
- 194   1          ir_rcv_int = 0;
- 195   1      }
- 196          
- 197          void ir_rcv_deinit(void)
- 198          {
- 199   1          ir_rcv_t1_timer_cfg(DISABLE);
- 200   1          ir_rcv_int = 0;
- 201   1      }
- 202          
- 203          
- 204          #if 0
+ 176   1      
+ 177   1          ir_rcv_int = 0;
+ 178   1          Timer1_InterruptEnable();
+C51 COMPILER V7.08   IR                                                                    10/04/2015 13:52:39 PAGE 4   
+
+ 179   1      
+ 180   1          return ret;
+ 181   1      }
+*** WARNING C280 IN LINE 160 OF ..\SOURCE\IR.C: 'temp': unreferenced local variable
+ 182          
+ 183          void ir_rcv_init(void)
+ 184          {
+ 185   1          ir_rcv_t1_timer_cfg(ENABLE);
+ 186   1          ir_rcv_int = 0;
+ 187   1      }
+ 188          
+ 189          void ir_rcv_deinit(void)
+ 190          {
+ 191   1          ir_rcv_t1_timer_cfg(DISABLE);
+ 192   1          ir_rcv_int = 0;
+ 193   1      }
+ 194          
+ 195          
+ 196          #if 0
               static bit ir_out;
               static unsigned char ir_cnt;
               
@@ -254,8 +247,6 @@ line level    source
                   return 0;
               }
               
-C51 COMPILER V7.08   IR                                                                    10/03/2015 23:33:20 PAGE 5   
-
               void ir_send_init(void)
               {
                   IR_SEND = 1;
@@ -263,6 +254,8 @@ line level    source
                   ir_cnt = 0;
                   ir_send_t0_timer_cfg(ENABLE);
               }
+C51 COMPILER V7.08   IR                                                                    10/04/2015 13:52:39 PAGE 5   
+
               
               void ir_send_deinit(void)
               {
@@ -305,14 +298,14 @@ line level    source
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    390    ----
+   CODE SIZE        =    380    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =   ----      31
+   DATA SIZE        =   ----      33
    IDATA SIZE       =   ----    ----
    BIT SIZE         =      1       2
 END OF MODULE INFORMATION.
 
 
-C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

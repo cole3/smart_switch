@@ -17,7 +17,7 @@
 
 ******************************************/
 
-#include	"delay.h"
+#include "delay.h"
 
 
 
@@ -30,7 +30,7 @@
 // ÈÕÆÚ: 2013-4-1
 // ±¸×¢:
 //========================================================================
-void  delay_ms(unsigned int ms)
+void delay_ms(unsigned int ms)
 {
     unsigned int i;
     while (ms--) {

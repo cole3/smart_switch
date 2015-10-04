@@ -1,0 +1,1 @@
+"..\source\main.c" BROWSE INCDIR(../include/) DEBUG OBJECTEXTEND PRINT(.\main.lst) OBJECT(.\main.obj)

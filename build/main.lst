@@ -1,4 +1,4 @@
-C51 COMPILER V7.08   MAIN                                                                  10/03/2015 23:33:08 PAGE 1   
+C51 COMPILER V7.08   MAIN                                                                  10/04/2015 14:06:04 PAGE 1   
 
 
 C51 COMPILER V7.08, COMPILATION OF MODULE MAIN
@@ -15,90 +15,210 @@ line level    source
    5          #include "ir.h"
    6          
    7          
-   8          #define TURN_ON(x)        do {x = 0;} while(0)
-   9          #define TURN_OFF(x)       do {x = 1;} while(0)
-  10          #define REVERSE(x)        do {x ^= 1;} while(0)
-  11          
-  12          
-  13          void gpio_init(void)
-  14          {
-  15   1          GPIO_InitTypeDef t_gpio_type;
-  16   1      
-  17   1          t_gpio_type.Mode = GPIO_HighZ;
-  18   1          t_gpio_type.Pin = GPIO_Pin_0;       // UART RXD
-  19   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
-  20   1      
-  21   1          t_gpio_type.Mode = GPIO_PullUp;
-  22   1          t_gpio_type.Pin = GPIO_Pin_1;       // UART TXD
-  23   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
-  24   1      
-  25   1          t_gpio_type.Mode = GPIO_PullUp;
-  26   1          t_gpio_type.Pin = GPIO_Pin_2;       // Relay
-  27   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
-  28   1          TURN_OFF(RELAY);
-  29   1      
-  30   1          t_gpio_type.Mode = GPIO_PullUp;
-  31   1          t_gpio_type.Pin = GPIO_Pin_3;       // LED
-  32   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
-  33   1          TURN_OFF(LED);
-  34   1      
-  35   1          t_gpio_type.Mode = GPIO_PullUp;
-  36   1          t_gpio_type.Pin = GPIO_Pin_4;       // Beep
-  37   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
-  38   1          TURN_OFF(BEEP);
+   8          #define CONFIG_WATCHDOG
+   9          
+  10          #define OFF               0
+  11          #define ON                1
+  12          #define REV               2
+  13          
+  14          
+  15          #define TURN_ON(x)        do {x = 0;} while(0)
+  16          #define TURN_OFF(x)       do {x = 1;} while(0)
+  17          #define REVERSE(x)        do {x = !x;} while(0)
+  18          
+  19          
+  20          code unsigned long _key_on[][4] = {
+  21              {0x2D, 0x2D, 0x58, 0xA7},
+  22              {0x1A, 0xA1, 0xDC, 0x73},
+  23              {0xC0, 0x01, 0x10, 0x2E}
+  24          };
+  25          code unsigned long _key_off[][4]  = {
+  26              {0x2D, 0x2D, 0x30, 0xCF},
+  27              {0x1A, 0xA1, 0xDC, 0x43},
+  28              {0xC0, 0x01, 0x10, 0x2E}
+  29          };
+  30          
+  31          
+  32          void gpio_init(void)
+  33          {
+  34   1          GPIO_InitTypeDef t_gpio_type;
+  35   1      
+  36   1          t_gpio_type.Mode = GPIO_HighZ;
+  37   1          t_gpio_type.Pin = GPIO_Pin_0;       // UART RXD
+  38   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
   39   1      
-  40   1          t_gpio_type.Mode = GPIO_HighZ;
-  41   1          t_gpio_type.Pin = GPIO_Pin_5;       // IR rev
+  40   1          t_gpio_type.Mode = GPIO_PullUp;
+  41   1          t_gpio_type.Pin = GPIO_Pin_1;       // UART TXD
   42   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
-  43   1      }
-  44          
-  45          unsigned char Ir_Buf[4];
-  46          //char c=0;
-  47          //unsigned int i=0;
-  48          //unsigned int ir_loop_cnt = 0;
-  49          
-  50          
-  51          main()
-  52          {
-  53   1          EA = 1;
-  54   1          gpio_init();
-C51 COMPILER V7.08   MAIN                                                                  10/03/2015 23:33:08 PAGE 2   
+  43   1      
+  44   1          t_gpio_type.Mode = GPIO_PullUp;
+  45   1          t_gpio_type.Pin = GPIO_Pin_2;       // Relay
+  46   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
+  47   1          TURN_OFF(RELAY);
+  48   1      
+  49   1          t_gpio_type.Mode = GPIO_PullUp;
+  50   1          t_gpio_type.Pin = GPIO_Pin_3;       // LED
+  51   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
+  52   1          TURN_OFF(LED);
+  53   1      
+  54   1          t_gpio_type.Mode = GPIO_PullUp;
+C51 COMPILER V7.08   MAIN                                                                  10/04/2015 14:06:04 PAGE 2   
 
-  55   1          ir_rcv_init();
-  56   1      
-  57   1          while (1) {
-  58   2              //uart_send(0xA3);
-  59   2              //BEEP = !BEEP;
-  60   2              //for (i=0; i<200; i++);
-  61   2              if (ir_rcv(Ir_Buf)) {
-  62   3                  REVERSE(RELAY);
-  63   3      
-  64   3                  TURN_ON(LED);
-  65   3      
-  66   3                  uart_init();
-  67   3      
-  68   3                  uart_send(Ir_Buf[0]);
-  69   3                  uart_send(Ir_Buf[1]);
-  70   3                  uart_send(Ir_Buf[2]);
-  71   3                  uart_send(Ir_Buf[3]);
-  72   3                  uart_send(0xFF);
-  73   3      
-  74   3                  uart_deinit();
-  75   3      
-  76   3                  TURN_OFF(LED);
-  77   3              }
-  78   2          }
-  79   1      }
+  55   1          t_gpio_type.Pin = GPIO_Pin_4;       // Beep
+  56   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
+  57   1          TURN_OFF(BEEP);
+  58   1      
+  59   1          t_gpio_type.Mode = GPIO_HighZ;
+  60   1          t_gpio_type.Pin = GPIO_Pin_5;       // IR rev
+  61   1          GPIO_Inilize(GPIO_P3, &t_gpio_type);
+  62   1      }
+  63          
+  64          void beep_play(bit on)
+  65          {
+  66   1          unsigned int i, n;
+  67   1          
+  68   1          if (on)
+  69   1          {
+  70   2              for (n=0; n<300; n++)
+  71   2              {
+  72   3                  REVERSE(BEEP);
+  73   3                  for (i=0; i<300; i++);
+  74   3              }
+  75   2          }
+  76   1      
+  77   1          for (n=0; n<1000; n++)
+  78   1          {
+  79   2              REVERSE(BEEP);
+  80   2              for (i=0; i<100; i++);
+  81   2          }
+  82   1          
+  83   1          if (!on)
+  84   1          {
+  85   2              for (n=0; n<300; n++)
+  86   2              {
+  87   3                  REVERSE(BEEP);
+  88   3                  for (i=0; i<300; i++);
+  89   3              }
+  90   2          }
+  91   1          
+  92   1          TURN_OFF(BEEP);
+  93   1      }
+  94          
+  95          unsigned char check_key(unsigned char *key)
+  96          {
+  97   1          unsigned char size = sizeof(_key_on) / sizeof(_key_on[0]);
+  98   1          unsigned char i;
+  99   1          unsigned char state = 0xFF;
+ 100   1          
+ 101   1          for (i=0; i<size; i++)
+ 102   1          {
+ 103   2              if (state != REV &&
+ 104   2                  _key_on[i][0] == key[0] &&
+ 105   2                  _key_on[i][1] == key[1] &&
+ 106   2                  _key_on[i][2] == key[2] &&
+ 107   2                  _key_on[i][3] == key[3])
+ 108   2              {
+ 109   3                  state = (state == OFF) ? REV : ON;
+ 110   3              }
+ 111   2              
+ 112   2              if (state != REV &&
+ 113   2                  _key_off[i][0] == key[0] &&
+ 114   2                  _key_off[i][1] == key[1] &&
+ 115   2                  _key_off[i][2] == key[2] &&
+ 116   2                  _key_off[i][3] == key[3])
+C51 COMPILER V7.08   MAIN                                                                  10/04/2015 14:06:04 PAGE 3   
+
+ 117   2              {
+ 118   3                  state = (state == ON) ? REV : OFF;
+ 119   3              }
+ 120   2          }
+ 121   1          
+ 122   1          return state;
+ 123   1      }
+ 124          
+ 125          
+ 126          unsigned char Ir_Buf[4];
+ 127          bit state = OFF;
+ 128          bit change = FALSE;
+ 129          unsigned char cnt = 0;
+ 130          
+ 131          main()
+ 132          {
+ 133   1      #ifdef CONFIG_WATCHDOG
+ 134   1          WDT_reset(D_WDT_SCALE_128);
+ 135   1      #endif
+ 136   1          
+ 137   1          EA = 1;
+ 138   1          gpio_init();
+ 139   1          ir_rcv_init();
+ 140   1          
+ 141   1          TURN_ON(LED);
+ 142   1          delay_ms(500);
+ 143   1          TURN_OFF(LED);
+ 144   1      
+ 145   1          while (1) {
+ 146   2      #ifdef CONFIG_WATCHDOG
+ 147   2              WDT_reset(D_WDT_SCALE_64);
+ 148   2      #endif
+ 149   2              if (ir_rcv(Ir_Buf)) {
+ 150   3                  
+ 151   3                  uart_init();
+ 152   3                  uart_send(Ir_Buf[0]);
+ 153   3                  uart_send(Ir_Buf[1]);
+ 154   3                  uart_send(Ir_Buf[2]);
+ 155   3                  uart_send(Ir_Buf[3]);
+ 156   3                  uart_send(0xFF);
+ 157   3                  uart_deinit();
+ 158   3                  
+ 159   3                  switch (check_key(Ir_Buf))
+ 160   3                  {
+ 161   4                      case ON:
+ 162   4                          state = ON;
+ 163   4                          change = TRUE;
+ 164   4                          break;
+ 165   4                      case OFF:
+ 166   4                          state = OFF;
+ 167   4                          change = TRUE;
+ 168   4                          break;
+ 169   4                      case REV:
+ 170   4                          state = !state;
+ 171   4                          change = TRUE;
+ 172   4                          break;
+ 173   4                      default:
+ 174   4                          change = FALSE;
+ 175   4                          break;
+ 176   4                  }
+ 177   3              }
+ 178   2              
+C51 COMPILER V7.08   MAIN                                                                  10/04/2015 14:06:04 PAGE 4   
+
+ 179   2              if (change) {
+ 180   3                  change = FALSE;
+ 181   3                  
+ 182   3                  if (state == ON) {
+ 183   4                      TURN_ON(RELAY);
+ 184   4                  } else {
+ 185   4                      TURN_OFF(RELAY);
+ 186   4                  }
+ 187   3                  
+ 188   3                  beep_play(state);
+ 189   3                  
+ 190   3                  TURN_ON(LED);
+ 191   3                  delay_ms(200);
+ 192   3                  TURN_OFF(LED);
+ 193   3              }
+ 194   2          }
+ 195   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    165    ----
-   CONSTANT SIZE    =   ----    ----
+   CODE SIZE        =    739    ----
+   CONSTANT SIZE    =     96    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =      4       2
+   DATA SIZE        =      5       8
    IDATA SIZE       =   ----    ----
-   BIT SIZE         =   ----    ----
+   BIT SIZE         =      2       1
 END OF MODULE INFORMATION.
 
 

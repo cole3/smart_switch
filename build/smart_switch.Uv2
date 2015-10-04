@@ -42,7 +42,7 @@ Options 1,0,0  // Target 'Target 1'
  EnvLib ()
  EnvReg (ÿSTC\)
  OrgReg (ÿSTC\)
- TgStat=0
+ TgStat=9
  OutDir (.\)
  OutName (smart_switch)
  GenApp=1

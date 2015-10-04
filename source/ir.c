@@ -166,15 +166,7 @@ bit ir_rcv(unsigned char *key)
 
     ir_rcv_t0_timer_cfg();
 
-    temp = Ir_Get_Low();
-    //test[0] = temp;
-#if 0
-    if ((temp < 7833) || (temp > 8755))  //引导脉冲低电平8500~9500us
-        return 0;
-#else
-    if (temp > 8755)
-        return 0;
-#endif
+    Ir_Get_Low();
 
 #if 1
     ret = nec_decode(key);
